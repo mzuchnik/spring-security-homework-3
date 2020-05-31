@@ -1,13 +1,12 @@
 package pl.mzuchnik.springsecurityhomework3.entity;
 
-import org.springframework.security.core.userdetails.UserDetails;
-
 import javax.persistence.*;
+import javax.validation.constraints.*;
 import java.util.HashSet;
 import java.util.Set;
 
 @Entity
-public class User implements UserDetails {
+public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -15,19 +14,26 @@ public class User implements UserDetails {
     private Long id;
 
     @Column(name = "username")
+    @NotNull
+    @NotBlank
+    @Email(message = "Podaj poprawny adress email")
     private String username;
 
     @Column(name = "password")
+    @NotNull
+    @NotBlank
+    @Size(min = 8, message = "Hasło musi posiadać minimum 8 znaków")
     private String password;
 
     @Column(name = "enabled")
     private boolean enabled;
 
     @ManyToMany(cascade = CascadeType.MERGE, fetch = FetchType.EAGER)
-    @JoinTable(name = "user_authority",
+    @JoinTable(name = "user_roles",
             joinColumns = @JoinColumn(name = "user_id"),
             inverseJoinColumns = @JoinColumn(name = "authority_id"))
-    private Set<Authority> authorities = new HashSet<>();
+    @NotEmpty(message = "Proszę wybrać minimalnie jedną role")
+    private Set<Role> roles = new HashSet<Role>();
 
     public User() {
     }
@@ -37,28 +43,12 @@ public class User implements UserDetails {
         this.password = password;
     }
 
-    public User(String username, String password, Set<Authority> authorities) {
+    public User(String username, String password, Set<Role> roles) {
         this.username = username;
         this.password = password;
-        this.authorities = authorities;
+        this.roles = roles;
     }
 
-    @Override
-    public boolean isAccountNonExpired() {
-        return true;
-    }
-
-    @Override
-    public boolean isAccountNonLocked() {
-        return true;
-    }
-
-    @Override
-    public boolean isCredentialsNonExpired() {
-        return true;
-    }
-
-    @Override
     public boolean isEnabled() {
         return enabled;
     }
@@ -71,7 +61,6 @@ public class User implements UserDetails {
         this.id = id;
     }
 
-    @Override
     public String getUsername() {
         return username;
     }
@@ -80,7 +69,6 @@ public class User implements UserDetails {
         this.username = username;
     }
 
-    @Override
     public String getPassword() {
         return password;
     }
@@ -89,13 +77,12 @@ public class User implements UserDetails {
         this.password = password;
     }
 
-    @Override
-    public Set<Authority> getAuthorities() {
-        return authorities;
+    public Set<Role> getRoles() {
+        return roles;
     }
 
-    public void setAuthorities(Set<Authority> authorities) {
-        this.authorities = authorities;
+    public void setRoles(Set<Role> authorities) {
+        this.roles = authorities;
     }
 
     public void setEnabled(boolean enabled) {
@@ -108,7 +95,7 @@ public class User implements UserDetails {
                 "id=" + id +
                 ", username='" + username + '\'' +
                 ", password='" + password + '\'' +
-                ", authorities=" + authorities +
+                ", authorities=" + roles +
                 '}';
     }
 }

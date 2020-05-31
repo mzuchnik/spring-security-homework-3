@@ -4,54 +4,41 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.annotation.Primary;
 import org.springframework.context.event.EventListener;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
-import pl.mzuchnik.springsecurityhomework3.entity.Authority;
-import pl.mzuchnik.springsecurityhomework3.entity.AuthorityType;
+import org.springframework.transaction.annotation.Transactional;
+import pl.mzuchnik.springsecurityhomework3.entity.Role;
 import pl.mzuchnik.springsecurityhomework3.entity.User;
-import pl.mzuchnik.springsecurityhomework3.repository.AuthorityRepo;
 import pl.mzuchnik.springsecurityhomework3.repository.UserRepo;
+
+import java.util.HashSet;
+import java.util.Set;
 
 @Service
 @Primary
 public class UserDetailServiceImpl implements UserDetailsService {
 
     private UserRepo userRepo;
-    private AuthorityRepo authorityRepo;
 
     @Autowired
-    public UserDetailServiceImpl(UserRepo userRepo, AuthorityRepo authorityRepo) {
+    public UserDetailServiceImpl(UserRepo userRepo) {
         this.userRepo = userRepo;
-        this.authorityRepo = authorityRepo;
     }
 
     @Override
+    @Transactional(readOnly = true)
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         User user = userRepo.findByUsername(username);
-        return user;
-    }
+        if (user == null) throw new UsernameNotFoundException(username);
 
-    @EventListener(ApplicationReadyEvent.class)
-    public void addTestUser()
-    {
-        Authority userRole = new Authority(AuthorityType.ROLE_USER);
-        Authority adminRole = new Authority(AuthorityType.ROLE_ADMIN);
-        Authority moderatorRole = new Authority(AuthorityType.ROLE_MODERATOR);
-
-        authorityRepo.save(userRole);
-        authorityRepo.save(adminRole);
-        authorityRepo.save(moderatorRole);
-
-
-        User user = new User("user",new BCryptPasswordEncoder().encode("user"));
-        user.setEnabled(true);
-        user.getAuthorities().add(authorityRepo.findByName(AuthorityType.ROLE_USER));
-        user.getAuthorities().add(authorityRepo.findByName(AuthorityType.ROLE_ADMIN));
-        user.getAuthorities().add(authorityRepo.findByName(AuthorityType.ROLE_MODERATOR));
-
-        userRepo.save(user);
+        Set<GrantedAuthority> roles = new HashSet<>();
+        for (Role role : user.getRoles()){
+            roles.add(new SimpleGrantedAuthority(role.getName()));
+        }
+        return new org.springframework.security.core.userdetails.User(user.getUsername(),user.getPassword(),roles);
     }
 }

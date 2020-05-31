@@ -4,12 +4,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import pl.mzuchnik.springsecurityhomework3.entity.*;
-import pl.mzuchnik.springsecurityhomework3.repository.AuthorityRepo;
+import pl.mzuchnik.springsecurityhomework3.repository.RoleRepo;
 import pl.mzuchnik.springsecurityhomework3.repository.UserRepo;
-import pl.mzuchnik.springsecurityhomework3.repository.VerifyTokenRepo;
 
-import javax.servlet.http.HttpServletRequest;
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -20,20 +17,20 @@ public class UserServiceImpl implements UserService {
     private UserRepo userRepo;
     private BCryptPasswordEncoder passwordEncoder;
     private VerifyTokenService verifyTokenService;
-    private AuthorityRepo authorityRepo;
+    private RoleRepo roleRepo;
 
     @Autowired
-    public UserServiceImpl(UserRepo userRepo, BCryptPasswordEncoder passwordEncoder, VerifyTokenService verifyTokenService, AuthorityRepo authorityRepo) {
+    public UserServiceImpl(UserRepo userRepo, BCryptPasswordEncoder passwordEncoder, VerifyTokenService verifyTokenService, RoleRepo roleRepo) {
         this.userRepo = userRepo;
         this.passwordEncoder = passwordEncoder;
         this.verifyTokenService = verifyTokenService;
-        this.authorityRepo = authorityRepo;
+        this.roleRepo = roleRepo;
     }
 
     @Override
-    public void addNewUser(User user, Set<String> roles) {
+    public void addNewUser(User user) {
         user.setPassword(passwordEncoder.encode(user.getPassword()));
-        updateUserRoles(user, roles);
+        updateUserRoles(user);
         userRepo.save(user);
     }
 
@@ -43,11 +40,8 @@ public class UserServiceImpl implements UserService {
             verifyTokenService.sendEmailWithToken(user, token, VerifyTokenType.ENABLE_ACCOUNT);
         }
         if (type.equals("ENABLE_ADMIN")){
-            List<Long> allAdminIds = userRepo.findAllWithRoleAdmin();
-            allAdminIds.forEach(adminId -> {
-                User admin =  userRepo.findById(adminId).get();
-                verifyTokenService.sendEmailWithUserTokenToAdmin(admin,user,token,VerifyTokenType.ENABLE_ADMIN);
-            });
+            List<User> admins = userRepo.findByRoles(roleRepo.findByName("ROLE_ADMIN"));
+            admins.forEach(admin->verifyTokenService.sendEmailWithUserTokenToAdmin(admin,user,token,VerifyTokenType.ENABLE_ADMIN));
         }
 
     }
@@ -62,7 +56,7 @@ public class UserServiceImpl implements UserService {
                 user.setEnabled(true);
             }
             if(type.equals(VerifyTokenType.ENABLE_ADMIN)) {
-                user.getAuthorities().add(authorityRepo.findByName(AuthorityType.ROLE_ADMIN));
+                user.getRoles().add(roleRepo.findByName("ROLE_ADMIN"));
             }
             userRepo.save(user);
             verifyTokenService.removeToken(token);
@@ -72,21 +66,19 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void updateUserRoles(User user, Set<String> roles) {
-        Set<Authority> userRoles = authorityRepo.findAll().stream()
-                    .filter(authority -> roles.contains(authority.getAuthority()))
-                    .collect(Collectors.toSet());
+    public void updateUserRoles(User user) {
+        Set<Role> userRoles = user.getRoles();
 
             //Jeśli zawiera role Admina zabierz mu ją i zrób wpis do bazy danych z odpowiednim tokenem i typem
-            Authority adminAuthority = authorityRepo.findByName(AuthorityType.ROLE_ADMIN);
-            if(userRoles.contains(adminAuthority))
+            Role adminRole = roleRepo.findByName("ROLE_ADMIN");
+            if(userRoles.contains(adminRole))
             {
                 String token = TokenGenerator.getRandomToken();
-                userRoles.remove(adminAuthority);
+                userRoles.remove(adminRole);
                 verifyTokenService.save(user,token,VerifyTokenType.ENABLE_ADMIN);
                 sendVerifyTokenEmail(user, token, "ENABLE_ADMIN");
             }
-            user.setAuthorities(userRoles);
+            user.setRoles(userRoles);
 
     }
 }

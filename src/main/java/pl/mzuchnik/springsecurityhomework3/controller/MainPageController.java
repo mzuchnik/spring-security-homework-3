@@ -2,27 +2,30 @@ package pl.mzuchnik.springsecurityhomework3.controller;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import pl.mzuchnik.springsecurityhomework3.entity.Role;
 import pl.mzuchnik.springsecurityhomework3.entity.User;
 import pl.mzuchnik.springsecurityhomework3.entity.VerifyTokenType;
-import pl.mzuchnik.springsecurityhomework3.repository.AuthorityRepo;
+import pl.mzuchnik.springsecurityhomework3.repository.RoleRepo;
 import pl.mzuchnik.springsecurityhomework3.service.TokenGenerator;
 import pl.mzuchnik.springsecurityhomework3.service.UserService;
 
+import javax.validation.Valid;
 import java.security.Principal;
 import java.util.Set;
 
 @Controller
 public class MainPageController {
 
-    private AuthorityRepo authorityRepo;
+    private RoleRepo roleRepo;
     private UserService userService;
 
-    public MainPageController(AuthorityRepo authorityRepo, UserService userService) {
-        this.authorityRepo = authorityRepo;
+    public MainPageController(RoleRepo roleRepo, UserService userService) {
+        this.roleRepo = roleRepo;
         this.userService = userService;
     }
 
@@ -39,16 +42,24 @@ public class MainPageController {
     @GetMapping("/sign-up")
     public String getSignUpForm(Model model) {
         model.addAttribute("user", new User());
-        model.addAttribute("roles", authorityRepo.findAll());
+        model.addAttribute("roles", roleRepo.findAll());
         return "sign-up";
     }
 
     @PostMapping("/sign-up")
-    public String saveUserSignUpForm(@ModelAttribute(name = "user") User user,
-                                     @RequestParam(name = "roles") Set<String> roles) {
+    public String saveUserSignUpForm(@Valid @ModelAttribute(name = "user") User user,
+                                     BindingResult bindingResult,
+                                     Model model) {
+        for (Role role : user.getRoles()) {
+            System.out.println(role.getName());
+        }
+        if(bindingResult.hasErrors()){
+            model.addAttribute("roles", roleRepo.findAll());
+            return "sign-up";
+        }
         String token = TokenGenerator.getRandomToken();
         userService.sendVerifyTokenEmail(user, token, VerifyTokenType.ENABLE_ACCOUNT.name());
-        userService.addNewUser(user, roles);
+        userService.addNewUser(user);
         return "redirect:/login";
     }
 

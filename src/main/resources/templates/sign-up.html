@@ -21,6 +21,7 @@
             <td>
                 <input type="text" th:field="*{username}">
             </td>
+            <td th:if="${#fields.hasErrors('username')}" th:errors="*{username}">Name Error</td>
         </tr>
         <tr>
             <td>
@@ -29,6 +30,7 @@
             <td>
                 <input type="password" th:field="*{password}">
             </td>
+            <td th:if="${#fields.hasErrors('password')}" th:errors="*{password}">Password Error</td>
         </tr>
         <tr>
             <td>
@@ -37,8 +39,13 @@
             </td>
         <tr th:each="role : ${roles}">
             <td>
-                <input type="checkbox" id="roles" name="roles" th:value="${role.getAuthority()}" th:text="${role.getAuthority()}">
+                <input type="checkbox" th:field="*{roles}" th:value="${role.getId()}">
+                <label th:for="${#ids.prev('roles')}"
+                       th:text="${role.name}"></label>
             </td>
+        </tr>
+        <tr>
+            <td th:if="${#fields.hasErrors('roles')}" th:errors="*{roles}">Roles Error</td>
         </tr>
     </table>
     <input type="submit" value="Zarejestruj">
