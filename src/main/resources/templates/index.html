@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Hello</title>
+    <link type="text/css" rel="stylesheet" href="css/main.css">
+</head>
+<body>
+<p>Witaj na mojej stronie</p>
+<br>
+<p>Załóż konto, aby korzystać z serwisu</p><br>
+<p th:text="${username}"></p>
+<form action="/sign-up" method="get">
+    <input type="submit" value="Rejestracja">
+</form>
+<form action="/login" method="get">
+    <input type="submit" value="Zaloguj się">
+</form>
+</body>
+</html>
