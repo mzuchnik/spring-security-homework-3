@@ -50,9 +50,6 @@ public class MainPageController {
     public String saveUserSignUpForm(@Valid @ModelAttribute(name = "user") User user,
                                      BindingResult bindingResult,
                                      Model model) {
-        for (Role role : user.getRoles()) {
-            System.out.println(role.getName());
-        }
         if(bindingResult.hasErrors()){
             model.addAttribute("roles", roleRepo.findAll());
             return "sign-up";

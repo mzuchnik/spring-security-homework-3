@@ -35,10 +35,10 @@ public class UserDetailServiceImpl implements UserDetailsService {
         User user = userRepo.findByUsername(username);
         if (user == null) throw new UsernameNotFoundException(username);
 
-        Set<GrantedAuthority> roles = new HashSet<>();
+       /* Set<GrantedAuthority> roles = new HashSet<>();
         for (Role role : user.getRoles()){
             roles.add(new SimpleGrantedAuthority(role.getName()));
-        }
-        return new org.springframework.security.core.userdetails.User(user.getUsername(),user.getPassword(),roles);
+        }*/
+        return user;
     }
 }

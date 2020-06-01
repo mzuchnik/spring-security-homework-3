@@ -7,9 +7,9 @@ import pl.mzuchnik.springsecurityhomework3.entity.*;
 import pl.mzuchnik.springsecurityhomework3.repository.RoleRepo;
 import pl.mzuchnik.springsecurityhomework3.repository.UserRepo;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 @Service
 public class UserServiceImpl implements UserService {
@@ -67,18 +67,24 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void updateUserRoles(User user) {
-        Set<Role> userRoles = user.getRoles();
 
-            //Jeśli zawiera role Admina zabierz mu ją i zrób wpis do bazy danych z odpowiednim tokenem i typem
-            Role adminRole = roleRepo.findByName("ROLE_ADMIN");
-            if(userRoles.contains(adminRole))
-            {
-                String token = TokenGenerator.getRandomToken();
-                userRoles.remove(adminRole);
-                verifyTokenService.save(user,token,VerifyTokenType.ENABLE_ADMIN);
-                sendVerifyTokenEmail(user, token, "ENABLE_ADMIN");
-            }
-            user.setRoles(userRoles);
+        if(!hasUserRole(user,"ROLE_USER"))
+        {
+            user.getRoles().add(roleRepo.findByName("ROLE_USER"));
+        }
+        if(hasUserRole(user,"ROLE_ADMIN")){
+            user.getRoles().remove(roleRepo.findByName("ROLE_ADMIN"));
 
+            String token = TokenGenerator.getRandomToken();
+            verifyTokenService.save(user,token,VerifyTokenType.ENABLE_ADMIN);
+            sendVerifyTokenEmail(user, token, "ENABLE_ADMIN");
+        }
+
+        //update user
+        userRepo.save(user);
+    }
+
+    private boolean hasUserRole(User user, String role){
+        return user.getRoles().contains(roleRepo.findByName(role));
     }
 }
